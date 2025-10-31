@@ -1,31 +1,3 @@
----
-title: "Simulation Challenge"
-subtitle: "Starter Template with To-Dos"
-format:
-  html: default
-execute:
-  echo: true
-  eval: true
----
-
-# 🎲 Simulation Challenge - Starter Template
-
-:::: {.callout-important}
-## 📋 What You Need To Do
-
-- [ ] Fork and create repo `simulationChallenge` in your GitHub
-- [ ] Clone locally and open in Cursor
-- [ ] Write your analysis in this `index.qmd`
-- [ ] Render to HTML (`quarto render` or Render button)
-- [ ] Push HTML to your repo and enable GitHub Pages
-- [ ] Share your site: `https://[your-username].github.io/simulationChallenge/`
-:::
-
-:::: {.callout-warning}
-## ⚠️ AI Partnership Required
-Use Cursor AI for speed, but ensure you understand and can explain the results in your own words.  Verify cursor's calculations as investment simulation is tricky.
-:::
-
 ## The Investment Game (Brief)
 
 You have the opportunity to buy-in to this game next week with $30,000. Your job is to analyze the potential outcomes of the game and communicate why or why you should not buy-in to the game.  
@@ -43,7 +15,7 @@ The following DAFT diagram shows the generative structure of the investment game
 
 ```{python}
 #| echo: false
-#| include: false
+#| include: true
 import daft
 
 # Create the DAG directly without custom class
@@ -65,121 +37,313 @@ investmentDAG.add_edge("Ct", "Wt")
 
 # Add plate around time-dependent nodes
 investmentDAG.add_plate([-2, 0.5, 7.8, 1.0], label="t = 1, ..., N", shift=-0.1)
-```
 
-```{python}
 #| label: fig-investment-dag
 #| fig-cap: Generative DAG model for the investment game showing how wealth evolves over time through coin flips
 #| echo: false
 investmentDAG.show()
 ```
 
-## Analysis Tasks (Fill These In)
-
-::::: {.callout-note}
-## Grading Scope
-
-- Sections 1–4: required and can earn up to 90% of the grade.
-- Sections 5–6: optional; strong, well-supported work here can bring your score up to 100%.
-::::
 
 ### 1) Expected Value After 1 Flip
 
-TODO: Explain whether the expected value of your account balance after one flip is >, =, or < $30,000. What is the gain in expected value as a percentage of your buy-in? Does this simple analysis suggest you should buy-in to the game?
+One flip has a 50% chance to go up by 50% and a 50% chance to go down by 40%. On average, that makes your money 1.05× bigger after one flip: $31,500 from $30,000 (a 5% gain). This looks good on average, but it doesn't show how risky the path can be.
 
 ```{python}
 #| label: q1-expected-value-py
-#| echo: true
+#| echo: false
 
-# TODO: Compute EV after one flip in Python
-# - Show calculation and brief explanation
+initial_wealth = 30_000
+prob_heads = 0.5
+prob_tails = 0.5
+up_factor = 1.5   # +50%
+down_factor = 0.6 # -40%
 
+wealth_heads = initial_wealth * up_factor
+wealth_tails = initial_wealth * down_factor
+expected_wealth = prob_heads * wealth_heads + prob_tails * wealth_tails
+
+absolute_gain = expected_wealth - initial_wealth
+percent_gain = absolute_gain / initial_wealth
+
+print(f"EV after one flip: ${expected_wealth:,.0f}")
+print(f"Gain vs buy-in: ${absolute_gain:,.0f} ({percent_gain:.1%})")
+print("Interpretation: EV rises by 5%, so on expectation this is favorable.")
 ```
 
 ### 2) Single Simulation Over Time (Narrative + Plot)
 
-Briefly narrate and visualize what happens to your account balance over the course of one run. Are you happy with the outcome? Why? or Why not?  You can use a time series plot to visualize the changes in your account balance over time.
+
+One example run (seed = 42) over 44 years (from age 31 to 75) shows a bumpy ride. Even though the average return is positive, a few tails in a row can push the balance well below $30,000, while a few heads in a row can make it jump. Overall the amount of return is not enough to justify the investment.
 
 ```{python}
 #| label: q2-single-sim-py
-#| echo: true
+#| echo: false
 #| fig-cap: "Single simulation path of account balance"
 
-# TODO: Simulate one path from $30,000 over N periods
-# - Make a matplotlib (OO) time-series
-# - Set seed for reproducibility
+import numpy as np
+import matplotlib.pyplot as plt
 
+# Reproducibility
+rng = np.random.default_rng(seed=42)
+
+initial_wealth = 30_000
+up_factor = 1.5
+down_factor = 0.6
+num_periods = 44  # age 31 to 75
+
+# Simulate coin flips: 1 = heads (up), 0 = tails (down)
+flips = rng.integers(0, 2, size=num_periods)  # 0 or 1
+factors = np.where(flips == 1, up_factor, down_factor)
+
+# Wealth path (include initial wealth at t=0)
+wealth = np.empty(num_periods + 1, dtype=float)
+wealth[0] = initial_wealth
+wealth[1:] = initial_wealth * np.cumprod(factors)
+
+# Plot (OO style)
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.plot(range(num_periods + 1), wealth, marker='o', linewidth=1.5)
+ax.axhline(initial_wealth, color='gray', linestyle='--', linewidth=1, label='$30,000$ baseline')
+ax.set_xlabel('Period')
+ax.set_ylabel('Account balance ($)')
+ax.set_title('Single simulated investment path')
+ax.legend()
+ax.grid(alpha=0.2)
+plt.tight_layout()
 ```
 
 ### 3) 100 Simulations: Distribution of Final Balances
 
-TODO: Visually and narratively describe the distribution of your account balance after running the 100 simulations. What is the probability of outcomes that you'd be happy with after having invested $30,000?
+Across 100 runs (seed = 123) over 44 years, results are spread out and skewed: a few very big wins pull up the average, while the middle outcome (median) is lower. That means most typical paths don't hit the average. The printed mean, median, and P(final > $30,000) right below the plot are the exact numbers this text refers to.
 
 ```{python}
-#| label: q3-dist-100-py
-#| echo: true
-#| fig-cap: "Distribution of final balances across 100 simulations"
+#| label: q3-100-simulations-py
+#| echo: false
+import numpy as np
+import matplotlib.pyplot as plt
 
-# TODO: Run 100 simulations and plot histogram of final balances
-# - Add vertical line at $30,000
-# - Compute mean, median, and P(final > $30,000)
+# Parameters
+rng = np.random.default_rng(seed=123)
+initial_wealth = 30_000
+up_factor = 1.5
+down_factor = 0.6
+num_periods = 44
+num_sims = 100
 
+# --- Simulation ---
+final_balances = np.empty(num_sims, dtype=float)
+for i in range(num_sims):
+    flips = rng.integers(0, 2, size=num_periods)
+    factors = np.where(flips == 1, up_factor, down_factor)
+    final_balances[i] = initial_wealth * np.prod(factors)
+
+# --- Summary ---
+mean_final = float(np.mean(final_balances))
+median_final = float(np.median(final_balances))
+prob_above_initial = float(np.mean(final_balances > initial_wealth))
+
+print(f"Mean final balance: ${mean_final:,.0f}")
+print(f"Median final balance: ${median_final:,.0f}")
+print(f"P(final > $30,000): {prob_above_initial:.3f}")
+
+# --- Histogram setup ---
+fig, ax = plt.subplots(figsize=(10, 5))
+min_val = max(0, final_balances.min())
+max_val = final_balances.max()
+
+if max_val > 100_000:
+    bins = np.logspace(np.log10(max(1, min_val)), np.log10(max_val), 15)
+    ax.set_xscale('log')
+else:
+    bucket_size = max(5000, (max_val - min_val) / 12)
+    bins = np.arange(min_val, max_val + bucket_size, bucket_size)
+
+# --- Plot histogram ---
+counts, bins, patches = ax.hist(
+    final_balances, bins=bins, color="#4C78A8", alpha=0.85,
+    edgecolor='black', linewidth=1
+)
+
+# --- Add counts above bars ---
+for patch, count in zip(patches, counts):
+    height = patch.get_height()
+    if height > 0:
+        ax.text(
+            patch.get_x() + patch.get_width() / 2,
+            height,
+            f'{int(count)}',
+            ha='center', va='bottom', fontsize=8
+        )
+
+# --- Set x-ticks at the center of each bin ---
+bin_centers = 0.5 * (bins[:-1] + bins[1:])
+ax.set_xticks(bin_centers)
+
+# --- Format x-axis labels as dollars ---
+ax.set_xticklabels(
+    [f"${int(x):,}" if x < 1000 else f"${x/1000:.0f}k" for x in bin_centers],
+    rotation=45, ha='right', fontsize=9
+)
+
+# --- Reference lines ---
+ax.axvline(initial_wealth, color='crimson', linestyle='--', linewidth=1.5, label='$30,000$ baseline')
+ax.axvline(mean_final, color='orange', linestyle='-', linewidth=1.5, label='Mean')
+ax.axvline(median_final, color='green', linestyle='-.', linewidth=1.5, label='Median')
+
+# --- Labels, title, legend, grid ---
+ax.set_xlabel('Final balance ($)', fontsize=10, labelpad=10)
+ax.set_ylabel('Count', fontsize=10, labelpad=8)
+ax.set_title('Final balances across 100 simulations', fontsize=12, pad=12)
+ax.legend(loc='upper left', frameon=False, fontsize=9)
+ax.grid(alpha=0.3, which="both", linestyle='--', linewidth=0.5)
+
+plt.tight_layout()
 ```
 
 ### 4) Probability Balance > $30,000 at Age 75 (Original Game)
 
-TODO: Report the probability estimate and interpret its practical meaning.
-
 ```{python}
 #| label: q4-prob-original-py
-#| echo: true
+#| echo: false
 
-# TODO: Using the 100 simulations above, estimate P(final > 30000)
-# - Print numeric result with 3 decimals
+import numpy as np
 
+# Use previously computed `final_balances` if available; otherwise, recompute
+try:
+    finals = final_balances  # from q3 chunk
+except NameError:
+    rng = np.random.default_rng(seed=123)
+    initial_wealth = 30_000
+    up_factor = 1.5
+    down_factor = 0.6
+    num_periods = 44
+    num_sims = 100
+    finals = np.empty(num_sims, dtype=float)
+    for i in range(num_sims):
+        flips = rng.integers(0, 2, size=num_periods)
+        factors = np.where(flips == 1, up_factor, down_factor)
+        finals[i] = initial_wealth * np.prod(factors)
+
+prob_above_30k = float(np.mean(finals > 30_000))
+print(f"P(final > $30,000): {prob_above_30k:.3f}")
 ```
+
+Interpretation: This number is the chance you end with more than $30,000 if you fully risk the balance each year over the same 44-year horizon. It reuses the same 100 simulations as above when available (seed = 123). Even if the average looks good, this chance can be below 50%, showing that the typical experience can differ from the average.
 
 ### 5) Modified Strategy (Bet Exactly 50% Each Round)
 
-Instead of having the full balance at risk with each coin flip, assume only 25% of your balance is gambled each year. Compare this to the original game. Which is riskier? Which has better upside?
 
 ```{python}
 #| label: q5-modified-50pct-py
-#| echo: true
+#| echo: false
 #| fig-cap: "Modified strategy distribution (bet 50% each round)"
 
-# TODO: Implement the modified game
-# - Run 100 simulations; plot distribution of final balances
-# - Estimate P(final > 30000) and compare to original
-# - visually compare the outcome distributions of the original and modified strategies
+import numpy as np
+import matplotlib.pyplot as plt
 
+# --- Parameters ---
+rng = np.random.default_rng(seed=2025)
+initial_wealth = 30_000
+num_periods = 44
+num_sims = 100
+
+# Original (full exposure)
+up_factor_full = 1.5
+down_factor_full = 0.6
+
+# Modified (fractional bet)
+fraction_bet = 0.25  # 25% Kelly fraction
+up_factor_mod = 1 + 0.5 * fraction_bet   # +50% on fraction bet
+down_factor_mod = 1 - 0.4 * fraction_bet # -40% on fraction bet
+
+# --- Simulation helper ---
+def simulate_finals(num_sims, num_periods, up_factor, down_factor, rng):
+    finals = np.empty(num_sims, dtype=float)
+    for i in range(num_sims):
+        flips = rng.integers(0, 2, size=num_periods)
+        factors = np.where(flips == 1, up_factor, down_factor)
+        finals[i] = initial_wealth * np.prod(factors)
+    return finals
+
+# --- Run simulations ---
+finals_original = simulate_finals(num_sims, num_periods, up_factor_full, down_factor_full, rng)
+finals_modified = simulate_finals(num_sims, num_periods, up_factor_mod, down_factor_mod, rng)
+
+# --- Stats ---
+mean_orig, median_orig = np.mean(finals_original), np.median(finals_original)
+mean_mod, median_mod = np.mean(finals_modified), np.median(finals_modified)
+p_orig = np.mean(finals_original > initial_wealth)
+p_mod = np.mean(finals_modified > initial_wealth)
+
+print(f"Original — mean: ${mean_orig:,.0f}, median: ${median_orig:,.0f}, P(> $30k): {p_orig:.3f}")
+print(f"Modified (f={fraction_bet:.0%}) — mean: ${mean_mod:,.0f}, median: ${median_mod:,.0f}, P(> $30k): {p_mod:.3f}")
+
+# --- Histogram setup ---
+fig, ax = plt.subplots(figsize=(10, 5))
+
+# Keep only positive values
+pos_orig = finals_original[finals_original > 0]
+pos_mod = finals_modified[finals_modified > 0]
+all_vals = np.concatenate([pos_orig, pos_mod])
+
+min_val = max(0, all_vals.min())
+max_val = all_vals.max()
+
+# Create bins
+if max_val > 100_000:
+    bins = np.logspace(np.log10(max(1, min_val)), np.log10(max_val), 15)
+    ax.set_xscale('log')
+else:
+    bucket_size = max(5000, (max_val - min_val) / 12)
+    bins = np.arange(min_val, max_val + bucket_size, bucket_size)
+
+# --- Plot histograms ---
+counts_orig, bins, patches_orig = ax.hist(
+    pos_orig, bins=bins, alpha=0.6, edgecolor='black', linewidth=1,
+    label='Original (full exposure)', color='#4C78A8'
+)
+counts_mod, bins, patches_mod = ax.hist(
+    pos_mod, bins=bins, alpha=0.6, edgecolor='black', linewidth=1,
+    label=f'Modified (f={fraction_bet:.0%})', color='#72B7B2'
+)
+
+# --- Add counts above bars (optional, original + modified separately) ---
+for patch, count in zip(patches_orig, counts_orig):
+    if count > 0:
+        ax.text(patch.get_x() + patch.get_width() / 2, count, f'{int(count)}',
+                ha='center', va='bottom', fontsize=8)
+for patch, count in zip(patches_mod, counts_mod):
+    if count > 0:
+        ax.text(patch.get_x() + patch.get_width() / 2, count, f'{int(count)}',
+                ha='center', va='bottom', fontsize=8)
+
+# --- Set x-ticks at bin centers ---
+bin_centers = 0.5 * (bins[:-1] + bins[1:])
+ax.set_xticks(bin_centers)
+
+# --- Format x-axis labels as dollars ---
+ax.set_xticklabels(
+    [f"${int(x):,}" if x < 1000 else f"${x/1000:.0f}k" for x in bin_centers],
+    rotation=45, ha='right', fontsize=9
+)
+
+# --- Reference line ---
+ax.axvline(initial_wealth, color='crimson', linestyle='--', linewidth=1.5, label='$30,000$ baseline')
+
+# --- Labels, legend, grid ---
+ax.set_ylabel('Count')
+ax.set_title('Final balances: full vs fractional exposure')
+ax.legend()
+ax.grid(alpha=0.3, which='both')
+ax.set_xlim(left=0.5 * min_val if max_val > 100_000 else None)
+
+plt.tight_layout()
 ```
 
+Comparison: With seed = 2025 and f = 25% over 44 years, the modified plan tones down the swings each year. You usually get fewer deep losses and a higher chance of ending above $30,000, though you give up some of the biggest possible wins. The printed mean, median, and probabilities above are the exact values for this run. It’s a trade‑off: smoother ride vs. maximum upside.
+
 ### 6) Briefly Explain Your Findings From The Previous Step in Light of A Concept Known as the "Kelly Criterion"
- 
-What is the Kelly Criterion and how does it relate to the modified strategy?
 
 
-## Professional Presentation (From Grading TLDR)
-
-- **Clear narrative:** tell the story succinctly (aim for a 1–5 minute read)
-- **Focus on insights:** risk profiles, counter-intuitive results, practical implications
-- **Professional style:** concise writing, clean visuals, hide code where appropriate (`echo: false`)
-- **Human interpretation:** explain what results mean for real decisions
-
-## Submission Checklist ✅
-
-- [ ] Quarto document written with narrative and results
-- [ ] Rendered to HTML successfully
-- [ ] Repository `simulationChallenge` created on GitHub
-- [ ] HTML committed and pushed
-- [ ] GitHub Pages enabled (Deploy from a branch → main → /(root))
-- [ ] Site accessible at `https://[your-username].github.io/simulationChallenge/`
-
-## Tips
-
-- Set random seeds for reproducibility
-- Use object-oriented plotting with `matplotlib`
-- Keep figures readable and labeled; prefer professional styling
-- Commit early and often; render locally before pushing
-
+The Kelly Criterion is a rule of thumb for how much to bet to grow your money fastest over the long run. For this game, the Kelly fraction is 25%. Betting 25% each year usually gives better typical results (and fewer huge drops) than betting the whole balance. In the code, set `fraction_bet = 0.25` to use Kelly; using `0.5` is an over‑bet here and tends to add risk and reduce long‑run growth.
