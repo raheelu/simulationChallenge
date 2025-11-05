@@ -148,7 +148,7 @@ print(f"Median final balance: ${median_final:,.0f}")
 print(f"P(final > $30,000): {prob_above_initial:.3f}")
 
 # --- Histogram setup ---
-fig, ax = plt.subplots(figsize=(10, 5))
+fig, ax = plt.subplots(figsize=(7, 5))
 min_val = max(0, final_balances.min())
 max_val = final_balances.max()
 
@@ -280,7 +280,7 @@ print(f"Original — mean: ${mean_orig:,.0f}, median: ${median_orig:,.0f}, P(> $
 print(f"Modified (f={fraction_bet:.0%}) — mean: ${mean_mod:,.0f}, median: ${median_mod:,.0f}, P(> $30k): {p_mod:.3f}")
 
 # --- Histogram setup ---
-fig, ax = plt.subplots(figsize=(10, 5))
+fig, ax = plt.subplots(figsize=(7, 5))
 
 # Keep only positive values
 pos_orig = finals_original[finals_original > 0]
